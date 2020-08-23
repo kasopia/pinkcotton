@@ -68,112 +68,97 @@ public class MyCar {
 
 
         float set_brake = 0.0f;
-        float set_throttle = 0.93f;//0.83f
+        float set_throttle = 1f;//0.83f
         float set_streering = 0.0f;
 
+        //말레이시아 첫코너
+        if(sensing_info.lap_progress < 10f || sensing_info.lap_progress > 90f) {
+        	set_throttle = 0.95f;
+        }
+        
         int angle_num = 0;
         int ang = 80;
-
-        //인코스일때 각이 넓어야함
-        if((sensing_info.track_forward_angles.get(0) > 0 && sensing_info.to_middle > 1) 
-        		|| (sensing_info.track_forward_angles.get(0) < 0 && sensing_info.to_middle < -1)){
-        	
-        	if(sensing_info.speed > 180) {
-        		angle_num = 4;
-        		ang = 10;
-        	}else if(sensing_info.speed > 160) {
-        		angle_num = 3;
-        		ang = 40;
-        	}else if(sensing_info.speed > 140) {
-        		angle_num = 2;
-        		ang = 60;
-        	}else if(sensing_info.speed > 110) {
-        		angle_num = 1;
-        		ang = 110;
-        	}else if(sensing_info.speed > 90) {
-        		angle_num = 1;
-        		ang = 120;
-        	}else {
-        		ang = 140;
-        	}
-        }
-        //아웃코스일때 각이 좁아야 함
-        else if((sensing_info.track_forward_angles.get(0) > 0 && sensing_info.to_middle < -1)
-        		|| (sensing_info.track_forward_angles.get(0) < 0 && sensing_info.to_middle < 1)){
-        	if(sensing_info.speed > 180) {
-        		angle_num = 4;
-        		ang = 10;
-        	}else if(sensing_info.speed > 160) {
-        		angle_num = 3;
-        		ang = 30;
-        	}else if(sensing_info.speed > 140) {
-        		angle_num = 1;
-        		ang = 60;
-        	}else if(sensing_info.speed > 110) {
-        		angle_num = 1;
-        		ang = 80;
-        	}else if(sensing_info.speed > 90) {
-        		angle_num = 1;
-        		ang = 100;
-        	}else {
-        		ang = 120;
-        	}
-
-        }else {	//중간일때 
-        	if(sensing_info.speed > 180) {
-        		angle_num = 4;
-        		ang = 10;
-        	}else if(sensing_info.speed > 160) {
-        		angle_num = 3;
-        		ang = 35;
-        	}else if(sensing_info.speed > 140) {
-        		angle_num = 3;
-        		ang = 65;
-        	}else if(sensing_info.speed > 110) {
-        		angle_num = 2;
-        		ang = 90;
-        	}else if(sensing_info.speed > 90) {
-        		angle_num = 1;
-        		ang = 100;
-        	}else {
-        		ang = 130;
-        	}
-        }
         
-        //커브 돌때 속도를 줄여준다
-        if(Math.abs(sensing_info.track_forward_angles.get(angle_num) - sensing_info.moving_angle) > 0 && 
-        		sensing_info.speed > 90 && Math.abs(sensing_info.to_middle) > 2 ) {
-        	set_throttle = 0.89f;
-        }
-        
+        if(sensing_info.speed > 200) {
+    		angle_num = 5;
+    		ang = 25;
+    	}else if(sensing_info.speed > 180) {
+    		angle_num = 3;
+    		ang = 35;
+    	}else if(sensing_info.speed > 160) {
+    		angle_num = 2;
+    		ang = 50;
+    	}else if(sensing_info.speed > 140) {
+    		angle_num = 2;
+    		ang = 120;
+    	}else if(sensing_info.speed > 110) {
+    		angle_num = 1;
+    		ang = 130;
+    	}else if(sensing_info.speed > 90) {
+    		angle_num = 1;
+    		ang = 150;
+    	}else if(sensing_info.speed > 70) {
+    		ang = 180;
+    	}else {
+    		ang = 200;
+    	}
+
         float ref_angle = sensing_info.track_forward_angles.get(angle_num);
 
-    	set_streering = (sensing_info.track_forward_angles.get(angle_num) - sensing_info.moving_angle) / ang;
+        //직선 차흔들려서 처리
+        if(Math.abs(sensing_info.track_forward_angles.get(angle_num)) > 1 
+        		|| Math.abs(sensing_info.moving_angle) > 0.5) {
+        	set_streering = (sensing_info.track_forward_angles.get(angle_num) - sensing_info.moving_angle) / ang;
+        	//set_streering = (float)(Math.abs(Math.atan((target / sensing_info.distance_to_way_points.get(angle_num)) * 57.29579))/50);
+        	
+        }
 
+        //직진코스에서 Moving ang이 클때 잡아줌
+        if(Math.abs(sensing_info.track_forward_angles.get(angle_num)) < 1 
+        		&& Math.abs(sensing_info.moving_angle) > 25) {
+        	set_throttle = 0.9f;
+        	if(Math.abs(sensing_info.to_middle) < 8 || Math.abs(sensing_info.moving_angle) > 35)
+        		set_brake = 0.01f;
+        }
+    	
     	//도로 밖으로 나갔을 경우
         if(Math.abs(sensing_info.to_middle) > 7.5) {
-        	if(sensing_info.to_middle > 0) {
-        		set_streering -= 0.1f;
+        	if(sensing_info.speed > 100) 
+        	{
+        		if(sensing_info.to_middle > 0) {
+            		set_streering -= 0.05f;
+            	}else {
+            		set_streering += 0.05f;
+            	}
+        		
         	}else {
-        		set_streering += 0.1f;
+        		if(sensing_info.to_middle > 0) {
+            		set_streering -= 0.1f;
+            	}else {
+            		set_streering += 0.1f;
+            	}
         	}
-        	if(sensing_info.speed > 100)
-        		set_throttle -= 0.05f;
+        	//직선일 경우
+//        	else {
+//        		if(sensing_info.to_middle > 0) {
+//            		set_streering -= 0.05f;
+//            	}else {
+//            		set_streering += 0.05f;
+//            	}
+//        	}
+        	
+        	if(sensing_info.speed > 140) {
+        		set_throttle -= 0.02f;
+        		set_brake= 0.01f; 
+        	}
+        	
         //도로 안일때
         }else {
-        	//직선일때 
-        	if(sensing_info.track_forward_angles.get(0) == 0f && sensing_info.moving_angle != 0f) {
-        		set_streering /= 2;
-        	}
-        	//각이 클때, 50도 = 1
-        	else if(Math.abs(set_streering) > 1.2f) {
-        		set_streering /= 3;
-        	}
+        	
         }
-        int obstacle = 0;
+        
         //전방의 장애물이 있을때만 처리
         if(Math.abs(sensing_info.track_forward_obstacles.size()) > 0){
-        	obstacle = 1;
             //가장 앞에 있는 장애물을 가져옴
             DrivingInterface.ObstaclesInfo fwd_obstacle = sensing_info.track_forward_obstacles.get(0);
  
@@ -192,38 +177,40 @@ public class MyCar {
                     //diff 0보다 클때 장애물이 오른편에 있어서 -1로 곱해 반대로 전환
                     if(diff > 0) ref_angle *= -1;
                     
-                    if(sensing_info.speed > 130)
-                    	set_streering += ref_angle/35;
+                    System.out.println("부딪힌다 ===== ref_angle : " + ref_angle);
+                    if(Math.abs(sensing_info.to_middle) > 7)
+                    	set_streering += ref_angle/30;
+                    else if(sensing_info.track_forward_angles.get(0) != 0)
+                    	set_streering += ref_angle/40;
                     else
-                    	set_streering += ref_angle/20;
-
-                    //System.out.println("각도 : "+  set_streering+ " ref_angle : "+ref_angle); 
+                    	set_streering += ref_angle/50;
                     
+                    for(int i=0; i<sensing_info.track_forward_angles.size(); i++) {
+                    	set_throttle = 0.86f;
+                    	if(sensing_info.speed > 120)
+                    		set_brake += 0.001f;
+                    }
                 }
             }
-        }else {
-        	//장애물 피하고나서 핸들을 조금씩 꺾어줌
-        	if(obstacle > 0) {
-        		obstacle -= 0.2;
-        		set_streering /= 5;
-        	}
         }
-       
+        
         
         //전방의 커브를 체크하여 급커브인경우 속도 감소 로직
         boolean full_throttle = true;
         boolean emergency_brake = false;
-
-        //스피드에 따라 전방 커브 조절 default 30
-        int speed_range = 25;
         
-        int road_range = (int)(sensing_info.speed / speed_range );
-        for(int i=0; i<road_range; i++){
+        
+        for(int i=0; i<sensing_info.track_forward_angles.size(); i++){
             float fwd_angle = Math.abs(sensing_info.track_forward_angles.get(i));
-            if(fwd_angle > 60){
+            if(fwd_angle > 30 && sensing_info.speed > 140){
+            	set_throttle = 0.86f;
+            	set_brake = 0.1f;
+            }
+
+            if(fwd_angle > 80) {
             	full_throttle = false;
             }
-            if(fwd_angle > 80){
+            if(fwd_angle > 120){
                 emergency_brake = true;
                 break;
             }
@@ -232,20 +219,20 @@ public class MyCar {
         //급정거 필요시 
         if(!full_throttle){
             //속도를 줄여준다 default 130, 120
-            if(sensing_info.speed > 110){
-                set_throttle = 0.4f;
+            if(sensing_info.speed > 130){
+                set_throttle = 0.5f;
             }
-            if(sensing_info.speed > 100){
-                set_brake  = 1;
+            if(sensing_info.speed > 120){
+                set_brake = 0.8f;
             }
         }
 
         //급정거 필요시 핸들 값을 계산된 것에 더해서 더많이 핸들을 돌리도록 설정
         if(emergency_brake){
             if(set_streering > 0){
-                set_streering = 0;
+                set_streering += 0.3f;
             }else{
-                set_streering -= 0.2;
+                set_streering -= 0.3f;
             }
         }
 
@@ -268,7 +255,7 @@ public class MyCar {
         }
 
         //default 20
-        if(recovery_count > 8){
+        if(recovery_count > 6){
             //후진완료후 변수 초기화
             is_accident = false;
             recovery_count = 0;
